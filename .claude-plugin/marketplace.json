@@ -2,8 +2,8 @@
   "name": "madwr1d-skills",
   "owner": { "name": "Madwr1d", "url": "https://github.com/Madwr1d" },
   "metadata": {
-    "description": "Free, production-tested Claude Code skills. Includes safe-multi-session-deploy: stop concurrent AI agents and multiple Claude Code sessions from clobbering unsaved work, deploying to the wrong Vercel project, or shipping with no way to tell which build is live.",
-    "version": "1.0.0"
+    "description": "Free, production-tested Claude Code skills. safe-multi-session-deploy: stop concurrent AI agents / Claude Code sessions from clobbering work, deploying to the wrong Vercel project, or shipping blind. visual-iteration: let an AI see what it builds — render a frame, compare to references, and iterate web design or 3D/game scenes until they look right.",
+    "version": "1.1.0"
   },
   "plugins": [
     {
@@ -13,6 +13,14 @@
       "version": "1.0.0",
       "license": "MIT",
       "keywords": ["deploy","vercel","railway","nextjs","claude-code","ai-agents","concurrency","ci-cd","git","provenance","monorepo","parallel-agents","cursor","devops"]
+    },
+    {
+      "name": "visual-iteration",
+      "source": "./skills/visual-iteration",
+      "description": "Let an AI SEE what it builds and fix it. Render -> look -> compare-to-reference -> edit -> re-render loop for getting web design (layout, CSS, spacing, typography, color) or 3D/game scenes (character look, mesh, texture, placement, lighting, camera framing) visually correct. Deterministically renders one frame via headless Chrome + Playwright, reads the image, compares to reference images or a style brief, and iterates. Includes a real-GPU-over-CDP path so WebGL post-processing (bloom/SSAO/tonemapping) matches what users see, not SwiftShader. For Three.js, react-three-fiber, raw WebGL, canvas, and any web framework.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "keywords": ["screenshot","visual-regression","design","css","ui","3d","webgl","threejs","react-three-fiber","game-dev","playwright","chrome-devtools","headless-chrome","ai-vision","render","claude-code","gemini","reference-image","frontend"]
     }
   ]
 }

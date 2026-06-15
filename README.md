@@ -75,6 +75,55 @@ It only *adds* a small `/version.json` build marker and runs read-only checks. N
 
 ---
 
+---
+
+## 📦 Skill: `visual-iteration`
+
+**Let an AI actually *see* what it builds — then fix it until it looks right.**
+
+Code review can't tell you a button is misaligned, a hero section feels cramped, a 3D character's hat is floating off its head, or a texture looks plastic. **You have to look.** This skill is the disciplined loop AI agents use to do that.
+
+### What it does
+
+Render → **look at the frame** → compare to a reference image or written style brief → make one focused change → re-render the *same* view → repeat until the pixels match the intent. Works for:
+
+- **Web / UI design** — layout, spacing, typography, color, responsive behavior, "does this match the mockup".
+- **3D / games / canvas** — character look, mesh & texture quality, object placement, lighting, camera framing. Three.js, react-three-fiber, raw WebGL, `<canvas>`.
+
+### Problems / phrases it answers
+
+- "Make my website look like this **reference / mockup / screenshot**"
+- "Have the **AI check its own design** instead of guessing from code"
+- "**Claude can't see the page** it's building / **let the agent take a screenshot and judge it**"
+- "My **3D model / character / texture looks wrong** and I can't describe why"
+- "**Match this art style / reference photo / video** in my game"
+- "**Visual regression** — did my CSS change break the layout?"
+- "Headless render looks different from the browser — **bloom/SSAO/antialiasing don't match** (SwiftShader vs real GPU)"
+
+### How it works (the part that makes it reliable)
+
+It renders **one deterministic frame** via headless Chrome + Playwright — fixed viewport, fixed camera "stations" for 3D, frozen clock/sim/RNG, a `__captureReady` gate, and clipping to the element under test — so every run is pixel-comparable and before/after tells the truth. It records the **WebGL renderer per frame** and warns when you're on software rendering (SwiftShader), with a **real-GPU-over-CDP path** so post-processing matches what users actually see.
+
+### Use it
+
+```
+/plugin install visual-iteration@madwr1d-skills
+```
+
+```bash
+# Web page, clip to <main>:
+node scripts/visual-capture.mjs --url http://localhost:3000 --selector main --out ./captures/home
+
+# 3D scene at two camera stations, real GPU:
+node scripts/visual-capture.mjs --url http://localhost:4173 \
+  --chrome "/path/to/chrome" --selector ".scene-canvas canvas" --ready __captureReady \
+  --stations "cam=0,7,33,0,4,-6,55|cam=5.5,2.4,10.5,1.5,1.8,4.5,45" --out ./captures/scene
+```
+
+Then **read each PNG**, compare to your target, edit, re-run. Requires Node 18+ and `playwright` (or `playwright-core`).
+
+---
+
 ## License
 
 MIT — free to use, modify, and redistribute. See [LICENSE](./LICENSE).
