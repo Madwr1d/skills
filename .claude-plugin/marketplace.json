@@ -1,17 +1,18 @@
 {
   "name": "madwr1d-skills",
-  "owner": { "name": "Madwr1d" },
+  "owner": { "name": "Madwr1d", "url": "https://github.com/Madwr1d" },
   "metadata": {
-    "description": "Free, practical Claude Code skills by Madwr1d.",
+    "description": "Free, production-tested Claude Code skills. Includes safe-multi-session-deploy: stop concurrent AI agents and multiple Claude Code sessions from clobbering unsaved work, deploying to the wrong Vercel project, or shipping with no way to tell which build is live.",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "safe-multi-session-deploy",
       "source": "./skills/safe-multi-session-deploy",
-      "description": "Prevents the three failure modes of running multiple AI coding sessions against one repo: clobbering unsaved work, deploying to the wrong linked project, and not knowing which build is live. Stamps + verifies a session-tagged build-provenance marker.",
+      "description": "Pre-deploy safety for repos shared by multiple AI agents or Claude Code sessions. Fixes: 'Vercel deploy succeeded but site didn't update', wrong/stale .vercel project with no live domain, parallel agents clobbering each other's uncommitted work, and not knowing which session's build is live. Stamps and verifies a session-tagged /version.json build-provenance marker. Works with Vercel, Railway, Next.js, Node, and any git deploy pipeline.",
       "version": "1.0.0",
-      "license": "MIT"
+      "license": "MIT",
+      "keywords": ["deploy","vercel","railway","nextjs","claude-code","ai-agents","concurrency","ci-cd","git","provenance","monorepo","parallel-agents","cursor","devops"]
     }
   ]
 }
