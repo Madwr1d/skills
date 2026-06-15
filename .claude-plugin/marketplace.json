@@ -1,0 +1,17 @@
+{
+  "name": "madwr1d-skills",
+  "owner": { "name": "Madwr1d" },
+  "metadata": {
+    "description": "Free, practical Claude Code skills by Madwr1d.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "safe-multi-session-deploy",
+      "source": "./skills/safe-multi-session-deploy",
+      "description": "Prevents the three failure modes of running multiple AI coding sessions against one repo: clobbering unsaved work, deploying to the wrong linked project, and not knowing which build is live. Stamps + verifies a session-tagged build-provenance marker.",
+      "version": "1.0.0",
+      "license": "MIT"
+    }
+  ]
+}
