@@ -1,0 +1,40 @@
+{
+  "name": "madwr1d-skills",
+  "version": "1.1.0",
+  "description": "Free Claude Code / AI-agent skills: safe-multi-session-deploy (stop concurrent agents clobbering work or deploying to the wrong Vercel project) and visual-iteration (let an AI see what it builds — render, compare to references, iterate web + 3D design).",
+  "bin": {
+    "madwr1d-skills": "bin/install.mjs"
+  },
+  "files": [
+    "skills",
+    "bin",
+    ".claude-plugin",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "skills",
+    "ai-agents",
+    "deploy",
+    "vercel",
+    "visual",
+    "screenshot",
+    "3d",
+    "webgl",
+    "threejs",
+    "design",
+    "playwright",
+    "frontend",
+    "devops"
+  ],
+  "author": "Madwr1d",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Madwr1d/skills.git"
+  },
+  "homepage": "https://github.com/Madwr1d/skills#readme",
+  "type": "module"
+}
