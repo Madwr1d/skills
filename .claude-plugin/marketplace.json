@@ -9,10 +9,10 @@
     {
       "name": "safe-multi-session-deploy",
       "source": "./skills/safe-multi-session-deploy",
-      "description": "Pre-deploy safety for repos shared by multiple AI agents or Claude Code sessions. Fixes: 'Vercel deploy succeeded but site didn't update', wrong/stale .vercel project with no live domain, parallel agents clobbering each other's uncommitted work, and not knowing which session's build is live. Stamps and verifies a session-tagged /version.json build-provenance marker. Works with Vercel, Railway, Next.js, Node, and any git deploy pipeline.",
-      "version": "1.0.0",
+      "description": "Pre-deploy safety for any project shared by multiple AI agents or sessions, pushing to ANY live host. Fixes: a deploy 'succeeds' but the live site never updates (wrong target/environment/project), parallel agents clobbering each other's uncommitted work, and not knowing which session's build is actually live. Host-agnostic — Vercel, Netlify, Cloudflare, Railway, Render, Fly, AWS/S3, a VPS over SSH/rsync, Docker, or FTP — via a pluggable deploy command. Stamps and verifies a session-tagged build-provenance marker on the live artifact.",
+      "version": "1.1.0",
       "license": "MIT",
-      "keywords": ["deploy","vercel","railway","nextjs","claude-code","ai-agents","concurrency","ci-cd","git","provenance","monorepo","parallel-agents","cursor","devops"]
+      "keywords": ["deploy","deployment","vercel","netlify","cloudflare","railway","render","fly","aws","s3","ssh","rsync","docker","ci-cd","claude-code","ai-agents","concurrency","git","provenance","parallel-agents","cursor","devops","go-live","production"]
     },
     {
       "name": "visual-iteration",

@@ -1,110 +1,140 @@
 ---
 name: safe-multi-session-deploy
-description: Use BEFORE committing or deploying any repo that multiple Claude/agent sessions may share (Vercel/Railway/Node web apps). Prevents the three failure modes of concurrent sessions on one working tree — clobbering another session's unsaved work, deploying to the WRONG linked project, and not knowing which session's build is actually live. Stamps a session-tagged build provenance marker and verifies it post-deploy.
+description: Use BEFORE committing or shipping any project that more than one AI agent or person works on at the same time. When you push code to a live website, app, or server — via any host (Vercel, Netlify, Cloudflare, Railway, Render, Fly, AWS/S3, a VPS over SSH/rsync, Docker, or FTP) — three things go wrong with concurrent sessions: one session's unsaved work gets clobbered, the deploy lands on the wrong target/environment so the real site never updates, and afterward nobody can tell which session's build is actually live. This skill is the checklist + scripts that prevent each, by isolating work, gating the deploy, and stamping + verifying a build-provenance marker on the live artifact.
 ---
 
 # Safe Multi-Session Deploy
 
-When several agent sessions share one working directory (a real situation:
-4 sessions once raced on the same repo), three things go wrong. This skill is
-the checklist that prevents each.
+When more than one agent or person works on the same project and ships it to a
+**live target** — a website, an app, a server, a bucket — three failures show up
+again and again, on every host, not just one. (Real case: four AI sessions once
+raced on the same repo.) This skill prevents each, regardless of how you deploy.
 
-## The three failure modes (all observed in production)
+It is **host-agnostic.** "Deploy" here means *any* path that puts your code in
+front of users: `vercel`/`netlify`/`wrangler` deploys, `git push` to a PaaS
+(Railway, Render, Fly, Heroku), `rsync`/`scp` to a VPS, `docker build && push`,
+`aws s3 sync`, an FTP upload, or a CI pipeline trigger. The principles are the
+same; only the commands differ.
 
-1. **Clobbering unsaved work** — a deploy uploads the whole working tree, so
-   another session's in-progress edits ship (or your edits get overwritten).
-2. **Wrong-project deploy** — `.vercel/project.json` is linked to a stale or
-   duplicate project, so `vercel --prod` builds successfully but to a project
-   with no live domain; the real site never updates and you think you shipped.
-3. **Invisible provenance** — after deploy you can't tell *which session's* code
-   is actually live, or whether the alias even moved.
+## The three failure modes (host-independent)
+
+1. **Clobbering unsaved work** — most deploys ship the *current working tree* (or
+   a fresh build of it), so another session's in-progress, uncommitted edits get
+   pushed live, or your own edits get overwritten by theirs. Nobody chose this;
+   the tool just uploaded whatever was on disk.
+2. **Wrong target** — you deploy successfully, but to the *wrong place*: a stale
+   linked project, the wrong environment (staging vs prod), the wrong server,
+   bucket, branch, or app. The command exits 0, so you believe you shipped — but
+   the live site never changes. (On Vercel this is a stale `.vercel/project.json`
+   pointing at a project with no live domain; on a VPS it's the wrong host or
+   path; on S3 the wrong bucket; on a PaaS the wrong app/service.)
+3. **Invisible provenance** — after deploying you can't tell *which session's*
+   code is live, or whether the live version even moved. So "I shipped my fix"
+   is unverified hope, not fact.
 
 ## Identify your session
 
-At the start, derive a stable short session code and remember it for the rest of
-the session:
+Derive a short, stable session code at the start and reuse it everywhere:
 
 ```bash
 SESSION=$(echo "${CLAUDE_SESSION_ID:-$$-$(date +%s)}" | sha1sum | cut -c1-6)
 ```
 
-Use it in commit trailers and the build stamp.
+Use it in commit trailers and in the build stamp.
 
 ## Before you COMMIT
 
-- Never `git add -A`. Stage only the specific files you changed.
-- Add a session trailer so concurrent sessions are distinguishable in history:
-  `git commit -m "<msg>" -m "Session: $SESSION"`
-- If two sessions edit the same file, prefer one git worktree per session
-  (`git worktree add ../wt-$SESSION <branch>`) — hard isolation beats
-  coordination (the 2026 industry-standard pattern for parallel agents).
+- Never `git add -A` / `git add .` blindly — stage only the files you changed, so
+  you can't sweep up another session's in-progress work or a stray secret.
+- Tag your commits so concurrent sessions are distinguishable in history:
+  `git commit -m "<msg>" -m "Session: $SESSION"`.
+- If two sessions touch the same files, give each its **own git worktree**
+  (`git worktree add ../wt-$SESSION <branch>`). Hard isolation beats coordination
+  — it's the standard pattern for running parallel agents safely.
 
 ## Before you DEPLOY — run the guard
 
-Run `scripts/deploy-guard.sh` (see below) or do these checks by hand:
+Use `scripts/deploy-guard.sh` (configurable for any host — see below) or perform
+these checks by hand, in order:
 
-1. **Confirm the linked project is the intended one.** Read
-   `.vercel/project.json` `projectName` and compare to the project that actually
-   owns the target domain (`vercel project ls` → match the Latest Production URL
-   to your domain). If they differ, STOP — re-link with
-   `vercel link --project <correct> --yes` first. (This is failure mode #2.)
-2. **Check for foreign unsaved work.** `git status --porcelain` must show no
-   uncommitted changes you didn't make; and no source file modified in the last
-   ~15 min that isn't yours. If found, coordinate before deploying. (Mode #1.)
-3. **Build locally as the gate.** Never deploy a tree that fails `build`/`tsc`.
-4. **Stamp provenance.** Write `public/version.json` (or pass a build env) with
-   `{ session, sha, builtAt, project }` so the live artifact reveals its origin.
-5. **Verify post-deploy.** After deploy, fetch `https://<domain>/version.json`
-   and assert `session` + `sha` match what you just built. If it doesn't match,
-   the alias didn't move or you hit the wrong project — investigate, don't
-   declare success. (Modes #2 and #3.)
+1. **Confirm the target is the intended one.** Whatever your host: verify *where
+   this deploy will land* before running it.
+   - Vercel: `.vercel/project.json` `projectName` must own the live domain
+     (`vercel project ls`); if not, `vercel link --project <correct> --yes`.
+   - Netlify/Cloudflare: confirm the linked site/project id.
+   - PaaS (Railway/Render/Fly): confirm the linked service **and environment**
+     (prod, not staging).
+   - VPS/SSH or rsync: confirm the host **and the target path**.
+   - S3/static: confirm the bucket + distribution.
+   If the target isn't unambiguously the right one, STOP and fix the link first.
+   (Failure mode #2.)
+2. **Check for foreign / unsaved work.** `git status --porcelain` must show no
+   uncommitted changes you didn't make, and no source file modified in the last
+   ~15 min that isn't yours. If you find some, another session is active —
+   coordinate before shipping. (Failure mode #1.)
+3. **Build locally as the gate.** Never deploy a tree that fails its build /
+   type-check / tests.
+4. **Stamp provenance.** Write a small build marker — `{ session, sha, builtAt,
+   target }` — into the artifact. For a web app, `public/version.json` (served at
+   `/version.json`). For a container, a `BUILD_INFO` label or env. For static
+   uploads, a `version.json` next to `index.html`. The point: the live artifact
+   can reveal its own origin.
+5. **Verify the LIVE artifact.** After deploying, read the provenance back *from
+   the live target* and assert it matches what you just built:
+   - Web: `curl https://<domain>/version.json` → check `session` + `sha`.
+   - API/app: hit a `/health` or version endpoint.
+   - Server/file deploy: `ssh host cat <path>/version.json`, or check the
+     deployed file's checksum/mtime.
+   If it doesn't match, the live version didn't move or you hit the wrong target
+   — investigate; do **not** declare success. (Failure modes #2 and #3.)
 
 ## The script
 
-`scripts/deploy-guard.sh <domain> [vercel-project-name]` runs all of the above
-for a Vercel + Next.js/Vite repo. Read it before first use; adapt paths
-(`public/` for static, `--build-env GIT_SHA=` for SSR) to the project.
+`scripts/deploy-guard.sh <verify-url-or-cmd> [options]` runs all of the above. By
+default it builds, stamps `public/version.json`, deploys, and verifies the live
+marker. The **deploy command is pluggable** via `DEPLOY_CMD` (or the built-in
+Vercel default), so the same guard works for Netlify, Cloudflare, a `git push`
+PaaS, `rsync`, Docker, or `aws s3 sync` — you just supply your host's deploy
+command and the URL/command that reads the live marker back. Read it once and set
+the env vars for your stack; the safety logic is identical across hosts.
 
 ## Showing provenance in-app (optional but recommended)
 
-Render the stamp somewhere subtle (a footer chip, like the xXTrade floor game's
-in-game version hash): fetch `/version.json` client-side and show
-`session·sha`. Then anyone — you or another session — can read which build is
-live at a glance.
+Render the stamp somewhere subtle — a footer chip showing `session·sha` (like the
+in-app version hash on a game build). Fetch `/version.json` client-side and show
+it. Then you, a teammate, or another agent can read which build is live at a
+glance, on any environment.
 
-## Combining every session's work into one build (the "pre folder", done right)
+## Combining every session's work into one build (the "shared folder", done right)
 
-The goal: when N sessions work in parallel, the deployed build contains ALL of
-their work, nothing is silently lost, and you can prove whose code is live.
+Goal: when N sessions work in parallel, the deployed build contains **all** their
+work, nothing is silently lost, and you can prove whose code is live.
 
-Do NOT implement this as a shared folder that sessions copy into and "merge" —
-file-copy can't do a real merge, so same-file edits silently clobber each other.
-Git is the correct "pre folder": it does true 3-way merges and FLAGS conflicts.
+Do **not** do this with a shared folder that sessions copy into and "merge" —
+file-copy can't merge, so same-file edits silently clobber each other. **Git is
+the correct merge surface**: it does true 3-way merges and *flags* conflicts.
 
-The workflow (`scripts/integrate-and-deploy.sh` automates it):
+Workflow (`scripts/integrate-and-deploy.sh` automates it):
 
-1. **Every session commits to its own branch** `session/<code>` — committed, not
-   left in the working tree. (Pre-req: the whole app must be git-tracked. If
-   most files are untracked, fix THAT first — `git add` the app — or no merge
-   can include them.)
-2. **Integration branch** `pre` (or `staging`): merge every `session/*` branch
-   into it with `git merge --no-ff`. If git reports a conflict, STOP and have it
-   resolved — that conflict is exactly the "two sessions changed the same thing"
-   case a folder copy would have destroyed.
+1. **Each session commits to its own branch** `session/<code>` — committed, not
+   left dirty in the tree. (Pre-req: the whole app is git-tracked. If most files
+   are untracked, fix that first — `git add` the app — or no merge can include
+   them.)
+2. **Integration branch** `pre` (or `staging`): merge each `session/*` branch in
+   with `git merge --no-ff`. A reported conflict is exactly the "two sessions
+   changed the same thing" case a folder copy would have destroyed — resolve it.
 3. **Build gate** on the merged `pre`.
-4. **Stamp `version.json` with ALL contributing sessions + shas** so the live
-   build proves it contains everyone's work.
+4. **Stamp the marker with ALL contributing sessions + shas** so the live build
+   proves it contains everyone's work.
 5. **Deploy from the committed `pre` branch**, never the mutable working tree.
-6. **Verify** the live `version.json` lists your session among the merged set.
-7. **Serialize deploys** with a lock (a short-lived `pre`-branch tag or a
-   `.deploy-lock` file) so two sessions don't deploy simultaneously.
-
-This gives you exactly what the folder idea wanted — all sessions' work in one
-live build, always visible — but with conflict safety and provenance.
+6. **Verify** the live marker lists your session among the merged set.
+7. **Serialize deploys** with a lock (a short-lived tag or a `.deploy-lock`
+   file) so two sessions don't deploy at the same instant.
 
 ## Red flags that mean STOP
 
-- "The build succeeded so it must be live" — verify `/version.json`, always.
-- "git status looks clean" but files were modified minutes ago by no one you
+- "The build succeeded, so it must be live." — No. Verify the live marker, always.
+- "`git status` looks clean" but files were modified minutes ago by no one you
   know — another session is active; coordinate.
-- The domain you expect isn't in the linked project's `vercel project ls` row.
+- You can't say, with certainty, **which target** this deploy will hit.
+- You're about to `git add -A` in a repo more than one session touches.

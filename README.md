@@ -8,9 +8,11 @@ Free, production-tested [Claude Code](https://docs.claude.com/en/docs/claude-cod
 
 ## 📦 Skill: `safe-multi-session-deploy`
 
-**A pre-deploy safety checklist + scripts for when more than one AI coding agent (or person) works in the same git repository at the same time.**
+**A pre-deploy safety checklist + scripts for when more than one AI agent (or person) works on the same project and ships it to a live target.**
 
-If you run **multiple Claude Code sessions**, **parallel AI agents**, **Cursor/Windsurf/Copilot agents**, or just **a teammate and a bot** against one working directory, deployments become dangerous. This skill makes them safe.
+If you run **multiple Claude Code sessions**, **parallel AI agents**, **Cursor/Windsurf/Copilot agents**, or just **a teammate and a bot** on one project, going live becomes dangerous. This skill makes it safe — on **any host**.
+
+> **Host-agnostic.** "Deploy" means *any* way you put code in front of users: Vercel, Netlify, Cloudflare, Railway, Render, Fly, Heroku, AWS/S3, a VPS over SSH/`rsync`, Docker, or FTP. The deploy command is pluggable (`DEPLOY_CMD`); the safety logic is identical everywhere.
 
 ### The problem it solves (symptoms you might be searching for)
 
